@@ -2,6 +2,52 @@
    agent.js — AI onboarding agent
    ============================================================ */
 
+// ── Progress-kontroller ───────────────────────────────────────
+function createProgress(barId, labelId, stages) {
+  let timer = null;
+  let value = 0;
+  let stage = 0;
+
+  function draw(pct, lbl) {
+    const bar = document.getElementById(barId);
+    const lbl2 = document.getElementById(labelId);
+    if (bar)  bar.style.width  = Math.min(100, pct) + '%';
+    if (lbl2 && lbl) lbl2.textContent = lbl;
+  }
+
+  return {
+    start() {
+      value = 0; stage = 0;
+      draw(0, stages[0].label);
+      timer = setInterval(() => {
+        const target = stages[stage].pct;
+        value += Math.max(0.15, (target - value) * 0.045);
+        if (value >= target && stage < stages.length - 1) stage++;
+        draw(value, stages[stage].label);
+      }, 120);
+    },
+    finish(onDone) {
+      clearInterval(timer); timer = null;
+      draw(100, '✨ Ferdig!');
+      setTimeout(onDone, 650);
+    },
+  };
+}
+
+const genProgress = createProgress('gen-bar', 'gen-label', [
+  { pct: 18, label: 'Analyserer svarene dine…' },
+  { pct: 42, label: 'Genererer tidslinje og måneder…' },
+  { pct: 63, label: 'Lager budsjett og sparemål…' },
+  { pct: 80, label: 'Skriver personlige premier…' },
+  { pct: 92, label: 'Fullfører planen…' },
+]);
+
+const updProgress = createProgress('upd-bar', 'upd-label', [
+  { pct: 30, label: 'Tolker forespørselen…' },
+  { pct: 75, label: 'Oppdaterer planen…' },
+  { pct: 92, label: 'Nesten ferdig…' },
+]);
+
 const QUESTIONS = [
   { key: 'navn',      text: 'Hva heter du? 🌸' },
   { key: 'premie',    text: 'Hva er premien din — hva jobber du mot? Det kan være en drømmereise, en luksusveske, konsert, flytte hjemmefra, spare til noe stort, eller noe helt annet!' },
@@ -118,7 +164,8 @@ async function generatePlan() {
 
   addMessage('Perfekt! Nå lager jeg din personlige livsplan basert på svarene dine ✨', 'ai');
   setTimeout(() => {
-    document.getElementById('chat-generating').style.display = 'flex';
+    document.getElementById('chat-generating').style.display = 'block';
+    genProgress.start();
   }, 600);
 
   const apiKey = localStorage.getItem('lp_api_key') || '';
@@ -226,10 +273,13 @@ Regler:
       throw new Error(`JSON-parsing feilet. Svaret ble trolig avkuttet. Siste del: "${preview}"`);
     }
 
-    document.getElementById('chat-generating').style.display = 'none';
-    loadFromAgentData(data);
+    genProgress.finish(() => {
+      document.getElementById('chat-generating').style.display = 'none';
+      loadFromAgentData(data);
+    });
 
   } catch (err) {
+    genProgress.finish(() => {});
     document.getElementById('chat-generating').style.display = 'none';
 
     const keyPreview = apiKey ? apiKey.slice(0, 14) + '…' : '(ingen nøkkel)';
@@ -325,6 +375,8 @@ async function sendPersistentMessage() {
   if (persistentHistory.length > 20) persistentHistory = persistentHistory.slice(-20);
 
   showPersistentTyping();
+  document.getElementById('persistent-updating').style.display = 'block';
+  updProgress.start();
 
   const apiKey  = localStorage.getItem('lp_api_key') || '';
   const name    = localStorage.getItem('lp_user_name') || '';
@@ -390,6 +442,9 @@ Bruk "premie" konsekvent — aldri "drøm" eller "mål". Svar på norsk. Vær ko
     persistentHistory.push({ role: 'assistant', content: raw });
 
     removePersistentTyping();
+    updProgress.finish(() => {
+      document.getElementById('persistent-updating').style.display = 'none';
+    });
 
     let parsed;
     try {
@@ -410,6 +465,9 @@ Bruk "premie" konsekvent — aldri "drøm" eller "mål". Svar på norsk. Vær ko
 
   } catch (err) {
     removePersistentTyping();
+    updProgress.finish(() => {
+      document.getElementById('persistent-updating').style.display = 'none';
+    });
     addPersistentMsg(`Noe gikk galt: ${err.message}`, 'ai');
   }
 
@@ -446,11 +504,6 @@ function applyPlanUpdate(update) {
     buildGoals();
     buildSavings();
 
-    const upd = document.getElementById('persistent-updating');
-    if (upd) {
-      upd.style.display = 'flex';
-      setTimeout(() => { upd.style.display = 'none'; }, 1800);
-    }
     showToast('Plan oppdatert! ✨');
   }
 }

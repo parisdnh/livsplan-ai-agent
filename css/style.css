@@ -670,6 +670,40 @@ tbody td:not(:first-child) { text-align: right; }
   font-size: 12px; word-break: break-all;
 }
 
+/* ── Progress bar (generering / oppdatering) ─────────────── */
+.progress-section {
+  padding: 14px 18px 12px; flex-shrink: 0;
+  background: linear-gradient(135deg, var(--pink-light), var(--lilac-light));
+  border-top: 1.5px solid var(--border);
+}
+.progress-label {
+  font-size: 12px; font-weight: 700; color: var(--text-muted);
+  margin-bottom: 8px; letter-spacing: 0.01em;
+  transition: opacity 0.3s;
+}
+.progress-track {
+  height: 7px; background: rgba(255,255,255,0.6);
+  border-radius: var(--radius-pill); overflow: hidden;
+  border: 1px solid var(--border);
+}
+.progress-fill {
+  height: 100%; width: 0%;
+  background: linear-gradient(90deg, var(--rose), var(--pink), var(--lilac));
+  border-radius: var(--radius-pill);
+  transition: width 0.45s cubic-bezier(.4,0,.2,1);
+  position: relative;
+}
+.progress-fill::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.35) 50%, transparent 100%);
+  animation: shimmer 1.6s infinite;
+}
+@keyframes shimmer {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+
 /* ── Retry-knapp i chat ──────────────────────────────────── */
 .retry-btn {
   display: inline-block; margin-top: 8px;

@@ -60,9 +60,11 @@
                onkeydown="if(event.key==='Enter')sendAnswer()" />
         <button onclick="sendAnswer()">Send</button>
       </div>
-      <div class="chat-generating" id="chat-generating" style="display:none">
-        <div class="typing-dots"><span></span><span></span><span></span></div>
-        <span>Genererer din personlige livsplan…</span>
+      <div class="progress-section" id="chat-generating" style="display:none">
+        <div class="progress-label" id="gen-label">Analyserer svarene dine…</div>
+        <div class="progress-track">
+          <div class="progress-fill" id="gen-bar"></div>
+        </div>
       </div>
     </div>
 
@@ -196,9 +198,11 @@
       <button class="persistent-close" onclick="closePersistentChat()">✕</button>
     </div>
     <div class="persistent-messages" id="persistent-messages"></div>
-    <div class="persistent-updating" id="persistent-updating" style="display:none">
-      <div class="typing-dots"><span></span><span></span><span></span></div>
-      <span>Oppdaterer planen…</span>
+    <div class="progress-section" id="persistent-updating" style="display:none">
+      <div class="progress-label" id="upd-label">Tolker forespørselen…</div>
+      <div class="progress-track">
+        <div class="progress-fill" id="upd-bar"></div>
+      </div>
     </div>
     <div class="chat-input-row" id="persistent-input-row">
       <input type="text" id="persistent-input"
