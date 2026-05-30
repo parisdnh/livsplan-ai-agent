@@ -663,6 +663,13 @@ tbody td:not(:first-child) { text-align: right; }
   75%       { transform: translateX(6px); }
 }
 
+/* ── Kode i chat-bobler ──────────────────────────────────── */
+.chat-bubble code {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 4px; padding: 1px 6px; font-family: monospace;
+  font-size: 12px; word-break: break-all;
+}
+
 /* ── Retry-knapp i chat ──────────────────────────────────── */
 .retry-btn {
   display: inline-block; margin-top: 8px;

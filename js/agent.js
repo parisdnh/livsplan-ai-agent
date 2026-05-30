@@ -18,10 +18,13 @@ let waitingForInput = false;
 function saveApiKey() {
   const inp = document.getElementById('api-key-input');
   const key = (inp.value || '').trim();
-  if (!key || !key.startsWith('sk-')) {
+
+  if (!key || !key.startsWith('sk-ant-')) {
     inp.classList.add('error');
-    inp.placeholder = 'Nøkkelen ser ikke riktig ut — sjekk og prøv igjen';
-    setTimeout(() => inp.classList.remove('error'), 2000);
+    inp.placeholder = key.startsWith('sk-') && !key.startsWith('sk-ant-')
+      ? 'Dette ser ut som en OpenAI-nøkkel — Anthropic-nøkler starter med sk-ant-'
+      : 'Nøkkelen må starte med sk-ant-…';
+    setTimeout(() => { inp.classList.remove('error'); inp.placeholder = 'sk-ant-…'; }, 3000);
     return;
   }
   localStorage.setItem('lp_api_key', key);
@@ -223,11 +226,21 @@ Regler:
 
   } catch (err) {
     document.getElementById('chat-generating').style.display = 'none';
-    addMessage(
-      `Noe gikk galt: <strong>${err.message}</strong>\n\nSjekk at API-nøkkelen er riktig og at du har internettilgang.\n\n` +
-      `<button onclick="retryGenerate()" class="retry-btn">🔄 Prøv igjen</button>`,
-      'ai'
-    );
+
+    const keyPreview = apiKey ? apiKey.slice(0, 14) + '…' : '(ingen nøkkel)';
+    const isKeyError = err.message.toLowerCase().includes('api-key') ||
+                       err.message.toLowerCase().includes('api_key') ||
+                       err.message.toLowerCase().includes('unauthorized') ||
+                       err.message.includes('401');
+
+    const msg = isKeyError
+      ? `API-nøkkelen ble avvist av Anthropic.\n\nNøkkel som ble brukt: <code>${keyPreview}</code>\n\nSjekk at du kopierte hele nøkkelen fra console.anthropic.com → API Keys.\n\n` +
+        `<button onclick="changeApiKey()" class="retry-btn">🔑 Bytt nøkkel</button>`
+      : `Noe gikk galt: <strong>${err.message}</strong>\n\nSjekk internettilkoblingen og prøv igjen.\n\n` +
+        `<button onclick="retryGenerate()" class="retry-btn">🔄 Prøv igjen</button> ` +
+        `<button onclick="changeApiKey()" class="retry-btn">🔑 Bytt nøkkel</button>`;
+
+    addMessage(msg, 'ai');
     document.getElementById('chat-input-row').style.display = 'flex';
     setChatLocked(true);
   }
