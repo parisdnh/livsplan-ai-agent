@@ -176,8 +176,8 @@ Returner KUN et JSON-objekt med denne nøyaktige strukturen — ingen tekst rund
 }
 
 Regler:
-- Lag månedskort fra neste måned og frem til premiedatoen (maks 12 måneder)
-- Hvert månedskort skal ha 4–6 konkrete, spesifikke todos som er relevante for akkurat denne premien
+- Lag månedskort fra neste måned og frem til premiedatoen (maks 8 måneder)
+- Hvert månedskort skal ha 4–5 konkrete, spesifikke todos som er relevante for akkurat denne premien
 - Todos skal ikke være generiske — de skal passe til nettopp det denne personen jobber mot
 - Budsjett skal reflektere hva det faktisk koster å nå premien
 - sparemaal = estimert totalbeløp brukeren trenger
@@ -199,7 +199,7 @@ Regler:
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-5',
-        max_tokens: 4000,
+        max_tokens: 8000,
         messages: [{ role: 'user', content: prompt }],
       }),
     });
@@ -214,11 +214,16 @@ Regler:
 
     let data;
     try {
-      const stripped = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
-      const match    = stripped.match(/\{[\s\S]*\}/);
-      data = JSON.parse(match ? match[0] : stripped);
+      // Strip markdown code fences if present
+      const stripped = raw.replace(/^```(?:json)?\s*/im, '').replace(/```\s*$/m, '').trim();
+      // Find outermost JSON object
+      const start = stripped.indexOf('{');
+      const end   = stripped.lastIndexOf('}');
+      if (start === -1 || end === -1) throw new Error('no braces');
+      data = JSON.parse(stripped.slice(start, end + 1));
     } catch {
-      throw new Error('Klarte ikke å lese svaret fra AI. Prøv igjen.');
+      const preview = raw.slice(-200);
+      throw new Error(`JSON-parsing feilet. Svaret ble trolig avkuttet. Siste del: "${preview}"`);
     }
 
     document.getElementById('chat-generating').style.display = 'none';
