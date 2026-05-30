@@ -264,6 +264,197 @@ function changeApiKey() {
   document.getElementById('api-key-input').value = '';
 }
 
+// ── Persistent AI-chat (etter onboarding) ────────────────────
+let persistentHistory = [];
+let persistentTypingEl = null;
+
+function togglePersistentChat() {
+  const panel = document.getElementById('persistent-panel');
+  const opening = !panel.classList.contains('open');
+  panel.classList.toggle('open');
+  if (opening && persistentHistory.length === 0) {
+    initPersistentChat();
+  }
+}
+
+function closePersistentChat() {
+  document.getElementById('persistent-panel').classList.remove('open');
+}
+
+function initPersistentChat() {
+  const name = localStorage.getItem('lp_user_name') || 'deg';
+  addPersistentMsg(
+    `Hei igjen, ${name}! 🌸 Planen din er klar — men jeg kan gjøre den enda mer personlig.\n\nFortell meg mer om hverdagen din, be meg justere mål, endre tidslinjen, tilpasse budsjettet, eller hva som helst annet.`,
+    'ai'
+  );
+}
+
+function addPersistentMsg(html, role) {
+  const box    = document.getElementById('persistent-messages');
+  const bubble = document.createElement('div');
+  bubble.className = 'chat-bubble chat-bubble-' + role;
+  bubble.innerHTML = html.replace(/\n/g, '<br>');
+  box.appendChild(bubble);
+  box.scrollTop = box.scrollHeight;
+}
+
+function showPersistentTyping() {
+  const box = document.getElementById('persistent-messages');
+  persistentTypingEl = document.createElement('div');
+  persistentTypingEl.className = 'chat-bubble chat-bubble-ai';
+  persistentTypingEl.innerHTML = '<div class="typing-dots"><span></span><span></span><span></span></div>';
+  box.appendChild(persistentTypingEl);
+  box.scrollTop = box.scrollHeight;
+}
+
+function removePersistentTyping() {
+  if (persistentTypingEl) { persistentTypingEl.remove(); persistentTypingEl = null; }
+}
+
+async function sendPersistentMessage() {
+  const inp = document.getElementById('persistent-input');
+  const msg = (inp.value || '').trim();
+  if (!msg) return;
+
+  inp.value = '';
+  inp.disabled = true;
+  addPersistentMsg(msg, 'user');
+  persistentHistory.push({ role: 'user', content: msg });
+
+  // Behold maks 20 meldinger i historikk
+  if (persistentHistory.length > 20) persistentHistory = persistentHistory.slice(-20);
+
+  showPersistentTyping();
+
+  const apiKey  = localStorage.getItem('lp_api_key') || '';
+  const name    = localStorage.getItem('lp_user_name') || '';
+  const premie  = localStorage.getItem('lp_premie') || '';
+  const dateStr = departureDate && !isNaN(departureDate.getTime())
+    ? departureDate.toLocaleDateString('nb-NO', { month: 'long', year: 'numeric' })
+    : 'ikke satt';
+
+  const systemPrompt = `Du er en personlig livsplanlegger for ${name}. De jobber mot premien sin: "${premie}" (dato: ${dateStr}).
+
+Nåværende plan:
+- Sparemål: ${savings.goal ? savings.goal.toLocaleString('no-NO') + ' kr' : 'ikke satt'}
+- Måneder i tidslinjen: ${months.length}
+- Premier/delmål: ${goals.map(g => g.title).join(' | ')}
+
+Brukeren kan be deg om å:
+- Endre eller legge til premier/delmål
+- Justere tidslinjen (måneder og todos)
+- Endre budsjettet
+- Gjøre planen mer personlig og detaljert
+- Gi råd og motivasjon
+
+Svar ALLTID med et gyldig JSON-objekt:
+{
+  "message": "Svarmeldingen din på norsk her",
+  "update": {
+    "goals": [...],
+    "months": [...],
+    "budgetSections": [...],
+    "sparemaal": 50000,
+    "premie": "...",
+    "avreisedato": "YYYY-MM-DD"
+  }
+}
+
+Inkluder kun feltene i "update" som faktisk endres. Utelat "update" helt hvis ingenting i planen endres.
+Bruk "premie" konsekvent — aldri "drøm" eller "mål". Svar på norsk. Vær konkret og motiverende.`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-5',
+        max_tokens: 4000,
+        system: systemPrompt,
+        messages: persistentHistory,
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error?.message || `API-feil (${res.status})`);
+    }
+
+    const result = await res.json();
+    const raw    = result.content[0].text;
+    persistentHistory.push({ role: 'assistant', content: raw });
+
+    removePersistentTyping();
+
+    let parsed;
+    try {
+      const start = raw.indexOf('{');
+      const end   = raw.lastIndexOf('}');
+      parsed = JSON.parse(raw.slice(start, end + 1));
+    } catch {
+      addPersistentMsg(raw, 'ai');
+      inp.disabled = false; inp.focus();
+      return;
+    }
+
+    addPersistentMsg(parsed.message || raw, 'ai');
+
+    if (parsed.update && Object.keys(parsed.update).length > 0) {
+      applyPlanUpdate(parsed.update);
+    }
+
+  } catch (err) {
+    removePersistentTyping();
+    addPersistentMsg(`Noe gikk galt: ${err.message}`, 'ai');
+  }
+
+  inp.disabled = false;
+  inp.focus();
+}
+
+function applyPlanUpdate(update) {
+  let changed = false;
+
+  if (update.goals)          { goals  = update.goals;          changed = true; }
+  if (update.months)         { months = update.months;         changed = true; }
+  if (update.budgetSections) { budget = update.budgetSections; changed = true; }
+  if (update.sparemaal)      { savings.goal = update.sparemaal; changed = true; }
+
+  if (update.premie) {
+    userPremie = update.premie;
+    localStorage.setItem('lp_premie', userPremie);
+    updateDynamicText();
+    changed = true;
+  }
+  if (update.avreisedato) {
+    departureDate = new Date(update.avreisedato);
+    localStorage.setItem('lp_departure_date', update.avreisedato);
+    buildCountdown();
+    updateDynamicText();
+    changed = true;
+  }
+
+  if (changed) {
+    persist();
+    buildTimeline();
+    buildBudget();
+    buildGoals();
+    buildSavings();
+
+    const upd = document.getElementById('persistent-updating');
+    if (upd) {
+      upd.style.display = 'flex';
+      setTimeout(() => { upd.style.display = 'none'; }, 1800);
+    }
+    showToast('Plan oppdatert! ✨');
+  }
+}
+
 // ── Init ─────────────────────────────────────────────────────
 (function initAgent() {
   if (localStorage.getItem('lp_onboarding_done')) return;

@@ -177,6 +177,37 @@
   </div>
 
 </div><!-- /container -->
+
+  <!-- ── Flytende AI-chat-knapp ──────────────────────────────── -->
+  <button class="agent-fab" id="agent-fab" onclick="togglePersistentChat()">
+    ✨ Tilpass plan
+  </button>
+
+  <!-- ── Persistent AI-chat-panel ────────────────────────────── -->
+  <div class="persistent-panel" id="persistent-panel">
+    <div class="persistent-header">
+      <div style="display:flex; align-items:center; gap:10px">
+        <div class="chat-avatar" style="width:34px;height:34px;font-size:17px">🤖</div>
+        <div>
+          <div class="chat-title">Tilpass planen</div>
+          <div class="chat-subtitle">Be AI-en endre og forbedre</div>
+        </div>
+      </div>
+      <button class="persistent-close" onclick="closePersistentChat()">✕</button>
+    </div>
+    <div class="persistent-messages" id="persistent-messages"></div>
+    <div class="persistent-updating" id="persistent-updating" style="display:none">
+      <div class="typing-dots"><span></span><span></span><span></span></div>
+      <span>Oppdaterer planen…</span>
+    </div>
+    <div class="chat-input-row" id="persistent-input-row">
+      <input type="text" id="persistent-input"
+             placeholder="Fortell mer eller be om endringer…"
+             onkeydown="if(event.key==='Enter')sendPersistentMessage()" />
+      <button onclick="sendPersistentMessage()">Send</button>
+    </div>
+  </div>
+
 </div><!-- /app-main -->
 
 <div class="toast" id="toast"></div>
