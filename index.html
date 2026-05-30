@@ -15,51 +15,98 @@
   <div class="container">
     <div class="brand">
       <h1>Min <em>Livsplan</em> 🌺</h1>
-      <p>Jun 2026 → Jan 2027 · Norge → Europa → Brasil → Latin-Amerika</p>
+      <p id="header-subtitle">Svar på 5 spørsmål og AI-en lager en personlig plan for deg!</p>
     </div>
     <div class="header-actions">
-      <button class="save-btn" onclick="saveAll()">💾 Lagre</button>
+      <button class="save-btn"  id="btn-save"  onclick="saveAll()"  style="display:none">💾 Lagre</button>
+      <button class="reset-btn" id="btn-reset" onclick="resetAll()" style="display:none">🔄 Start på nytt</button>
       <span class="save-indicator" id="save-indicator">Lagret 💗</span>
     </div>
   </div>
 </header>
 
+<!-- ── Onboarding ─────────────────────────────────────────── -->
+<div id="onboarding" style="display:none">
+  <div class="container">
+
+    <!-- API-nøkkel -->
+    <div class="api-key-section" id="api-key-section" style="display:none">
+      <div class="api-key-card">
+        <div class="api-key-icon">🔑</div>
+        <h2>Koble til Claude AI</h2>
+        <p>Skriv inn Anthropic API-nøkkelen din for å starte. Den lagres kun lokalt i nettleseren — aldri på noen server.</p>
+        <div class="api-key-row">
+          <input type="password" id="api-key-input" placeholder="sk-ant-…"
+                 onkeydown="if(event.key==='Enter')saveApiKey()" />
+          <button onclick="saveApiKey()">Start 🌸</button>
+        </div>
+        <p class="api-key-hint">Finn nøkkelen din på <strong>console.anthropic.com</strong> → API Keys</p>
+      </div>
+    </div>
+
+    <!-- Chat -->
+    <div class="chat-container" id="chat-container" style="display:none">
+      <div class="chat-header">
+        <div class="chat-avatar">🤖</div>
+        <div class="chat-header-text">
+          <div class="chat-title">Livsplan AI</div>
+          <div class="chat-subtitle">Lager en plan personalisert til deg ✨</div>
+        </div>
+        <button class="chat-key-btn" onclick="changeApiKey()" title="Bytt API-nøkkel">🔑</button>
+      </div>
+      <div class="chat-messages" id="chat-messages"></div>
+      <div class="chat-input-row" id="chat-input-row">
+        <input type="text" id="chat-input" placeholder="Skriv svaret ditt her…"
+               onkeydown="if(event.key==='Enter')sendAnswer()" />
+        <button onclick="sendAnswer()">Send</button>
+      </div>
+      <div class="chat-generating" id="chat-generating" style="display:none">
+        <div class="typing-dots"><span></span><span></span><span></span></div>
+        <span>Genererer din personlige livsplan…</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── Hovedapp (skjult til onboarding er ferdig) ─────────── -->
+<div id="app-main" style="display:none">
 <div class="container">
 
-  <!-- ── Tabs ───────────────────────────────────────────────── -->
+  <!-- ── Tabs ─────────────────────────────────────────────── -->
   <div class="tabs">
     <button class="tab-btn active" onclick="showTab('timeline',this)">📅 Tidslinje</button>
     <button class="tab-btn"        onclick="showTab('budget',this)">💰 Budsjett</button>
-    <button class="tab-btn"        onclick="showTab('goals',this)">⭐ Mål</button>
+    <button class="tab-btn"        onclick="showTab('goals',this)">🏆 Premier</button>
   </div>
 
-  <!-- ── Timeline panel ─────────────────────────────────────── -->
+  <!-- ── Tidslinje ─────────────────────────────────────────── -->
   <div id="panel-timeline" class="panel active">
     <div id="timeline"></div>
   </div>
 
-  <!-- ── Budget panel ───────────────────────────────────────── -->
+  <!-- ── Budsjett ──────────────────────────────────────────── -->
   <div id="panel-budget" class="panel">
     <div class="budget-metrics" id="budget-metrics"></div>
     <div id="budget-sections"></div>
   </div>
 
-  <!-- ── Goals panel ────────────────────────────────────────── -->
+  <!-- ── Premier ───────────────────────────────────────────── -->
   <div id="panel-goals" class="panel">
     <div class="goals-grid" id="goals-list"></div>
     <div class="add-goal-row">
-      <input id="new-goal-title" placeholder="Nytt mål… ✨" />
+      <input id="new-goal-title" placeholder="Ny premie… ✨" />
       <input id="new-goal-desc"  placeholder="Kort beskrivelse" />
       <button onclick="addGoal()">+ Legg til</button>
     </div>
   </div>
 
-  <!-- ── Countdown ──────────────────────────────────────────── -->
+  <!-- ── Countdown ─────────────────────────────────────────── -->
   <div class="countdown-banner">
-    <div class="countdown-emoji">✈️</div>
+    <div class="countdown-emoji" id="cd-emoji">🏆</div>
     <div class="countdown-text">
-      <h2>Avreise til Europa — 1. september 2026</h2>
-      <p>Drømmesommeren er underveis! Hold fokus 🌸</p>
+      <h2 id="cd-title">Premiedato</h2>
+      <p id="cd-subtitle">Hold fokus og nå premien din! 🌸</p>
     </div>
     <div class="countdown-chips">
       <div class="countdown-chip">
@@ -77,13 +124,13 @@
     </div>
   </div>
 
-  <!-- ── Savings tracker ────────────────────────────────────── -->
+  <!-- ── Sparemål ───────────────────────────────────────────── -->
   <div class="savings-section">
     <div class="savings-card">
       <div class="savings-header">
-        <span style="font-size:24px">🌊</span>
-        <h2>Sparemål til avreise</h2>
-        <span class="pill">Sommer 2026</span>
+        <span style="font-size:24px">🌟</span>
+        <h2>Sparemål mot premien</h2>
+        <span class="pill" id="savings-pill">Mitt mål</span>
       </div>
 
       <div class="savings-goal-row">
@@ -94,25 +141,20 @@
         </div>
         <div class="savings-item lilac">
           <div class="savings-item-label">Sparemål</div>
-          <div class="savings-item-val" id="savings-goal-val">25 000 kr</div>
-          <div class="savings-item-sub">Høyer + småjobber</div>
+          <div class="savings-item-val" id="savings-goal-val">— kr</div>
+          <div class="savings-item-sub">Satt av AI-agenten</div>
         </div>
         <div class="savings-item mint">
           <div class="savings-item-label">Fremgang</div>
           <div class="savings-item-val" id="savings-pct">0%</div>
-          <div class="savings-item-sub" id="savings-left">25 000 kr igjen</div>
-        </div>
-        <div class="savings-item peach">
-          <div class="savings-item-label">Studielån aug</div>
-          <div class="savings-item-val">~30 000 kr</div>
-          <div class="savings-item-sub">Storstipend 🎉</div>
+          <div class="savings-item-sub" id="savings-left">— kr igjen</div>
         </div>
       </div>
 
       <div class="savings-bar-wrap">
         <div class="savings-bar-labels">
           <span>0 kr</span>
-          <span id="savings-goal-label">25 000 kr</span>
+          <span id="savings-goal-label">— kr</span>
         </div>
         <div class="savings-bar-track">
           <div class="savings-bar-fill" id="savings-bar-fill" style="width:0%"></div>
@@ -135,10 +177,12 @@
   </div>
 
 </div><!-- /container -->
+</div><!-- /app-main -->
 
 <div class="toast" id="toast"></div>
 
 <script src="js/data.js"></script>
 <script src="js/app.js"></script>
+<script src="js/agent.js"></script>
 </body>
 </html>

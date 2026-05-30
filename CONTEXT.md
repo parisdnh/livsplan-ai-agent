@@ -1,175 +1,171 @@
-# Livsplan — prosjektkontekst for Claude Code
+# Livsplan med AI Agent — prosjektkontekst for Claude Code
 
 ## Hva er dette
-En personlig livsplan-webapp (HTML/CSS/JS, ingen rammeverk) for en person som planlegger
-et år med jobb, reise og studier. Åpnes direkte i nettleseren — ingen server nødvendig.
+En personlig livsplan-webapp (HTML/CSS/JS, ingen rammeverk) der en AI-agent
+stiller brukeren spørsmål og genererer en helt personalisert livsplan.
+Åpnes direkte i nettleseren — ingen server eller backend nødvendig.
 All data lagres i `localStorage`.
 
----
-
-## Livsplan — faser og innhold
-
-### 🇳🇴 Sommer i Norge (jun–aug 2026)
-- Deltidsjobb på **Høyer Skøyen** (klesbutikk)
-- Småjobber ved siden av: dogwalking, hagearbeid, generelle småjobber via Finn/Bark
-- Ta **lappen** — kun oppkjøring gjenstår, sett av ~10 000 kr
-- Spare **15–25k** til avreise i september
-- Fullføre **Harvard CS50 Python** (gratis nettkurs)
-- Bygge apper med **Claude Code** for gøy og læring
-- Ha en sosial sommer med venner — ikke bare jobb
-
-### 🎓 Studier (aug 2026 → mai 2027)
-- Starter **nettstudier i august 2026**
-- Gir **studielån 11 000 kr/mnd** fra september 2026
-- **Storstipend ~30 000 kr** utbetales i august 2026
-- Studielånet dekker levekostnader i utlandet — lønn kan spares
-
-### 🇪🇺 Europa (sep–nov 2026)
-- Destinasjon: **Spania, Portugal eller Hellas** (ikke bestemt ennå)
-- Jobb: **retail** (H&M, Zara, Mango eller lokale kjeder)
-- Mål: få jobb innen 4 uker, bli selvforsynt
-- Bo i WG/flatshare, bygge lokalt nettverk
-- Spare størst mulig andel av lønn til Brasil-turen
-
-### 🇧🇷 Brasil (des 2026)
-- **4–5 uker** fra slutten av desember
-- Nyttårsfest på Copacabana 🎆
-- Leve på sparepenger + studielån
-- Dette er drømmemålet — ikke stress, bare nyt
-
-### 🌎 Mexico / Colombia (jan 2027)
-- **Venner på utveksling** hit — bo med dem noen uker
-- Utforske, koble av, planlegge resten av 2027
+Dette prosjektet er basert på "livsplan riktig" (Paris sin versjon), men
+er gjort helt generisk — hvem som helst skal kunne bruke den til sine egne
+drømmer og mål, enten det er en drømmereise, en dyr veske, flytte til utlandet,
+spare til noe stort, eller noe helt annet.
 
 ---
 
-## Økonomi-oversikt
+## Hva som er bygget (arvet fra originalprosjektet)
 
-| Kilde | Beløp | Når |
-|---|---|---|
-| Høyer + småjobber (sommer) | 15–25k spart | jun–aug 2026 |
-| Storstipend | ~30 000 kr | aug 2026 |
-| Studielån | 11 000 kr/mnd | sep 2026 → mai 2027 |
-| Retailjobb i Europa | Levbar lønn (spares) | sep–nov 2026 |
+- ✅ Cutesy design — Playfair Display + Nunito, rosa/lilla/mint fargepalett
+- ✅ Countdown til en valgfri dato
+- ✅ Sparetracker med progressbar og milepæler
+- ✅ Tidslinje med månedskort — todos, notater, redigerbare felter
+- ✅ Budsjett med seksjoner og inline redigering
+- ✅ Mål med contenteditable tittel/beskrivelse og slider
+- ✅ localStorage — alt lagres automatisk
 
-**Faste utgifter å budsjettere:**
-- Lappen: ~10 000 kr
-- Fly til Europa: ~3 000 kr
-- Bolig Europa (×3 mnd): ~12 000 kr
-- Fly Europa → Brasil: ~6 000 kr
-- Brasil opphold (4–5 uker): ~7 000 kr
-- Fly Brasil → Mexico/Colombia: ~3 000 kr
-- Buffer/nødfond: ~10 000 kr
+## Hva som skal bygges (nytt i denne versjonen)
+
+- [ ] AI-onboarding-chat øverst i appen
+- [ ] AI-agent som stiller spørsmål og personaliserer appen
+- [ ] Generisk data.js uten hardkodede referanser til Paris sin reiseplan
+- [ ] Brukeren kan starte på nytt / resette og kjøre onboarding igjen
 
 ---
 
 ## Prosjektstruktur
 
 ```
-livsplan/
-├── index.html          ← HTML-skjelett, alle panels
+livsplan-ai-agent/
+├── index.html          ← HTML-skjelett, alle panels + ny onboarding-seksjon
+├── CONTEXT.md          ← denne filen
 ├── css/
-│   └── style.css       ← all styling (cutesy design system)
+│   └── style.css       ← all styling inkl. AI-chat-komponenter
 └── js/
-    ├── data.js         ← DEFAULT_MONTHS, DEFAULT_BUDGET_SECTIONS, DEFAULT_GOALS, konstanter
-    └── app.js          ← all logikk: state, persist(), buildX(), eventhandlers
+    ├── data.js         ← tomme defaults, konstanter, GOAL_ICONS
+    ├── app.js          ← all app-logikk: state, persist(), buildX()
+    └── agent.js        ← NY: AI-agent logikk, Anthropic API-kall, onboarding-flyt
 ```
 
-### Viktige konstanter i data.js
-- `SAVINGS_GOAL = 25000` — sparemål til avreise
-- `DEPARTURE_DATE = new Date('2026-09-01')` — brukes av countdown
+---
 
-### State-variabler i app.js
-- `months` — array av månedsobjekter med todos, notater, jobb, sted
-- `budget` — array av seksjoner, hver med `rows[]`
-- `goals` — array av mål med tittel, beskrivelse, ikon, pct
-- `savings` — `{ current, log[], goal }` — sparetracking
+## AI-agent — hvordan det skal fungere
+
+### Flyt
+1. Bruker åpner appen for første gang
+2. Onboarding-chat vises øverst — resten av appen er skjult
+3. AI-agenten ønsker velkommen og stiller spørsmål ett om gangen:
+   - Hva heter du?
+   - Hva drømmer du om? (reise, gjenstand, opplevelse, flytte, noe annet?)
+   - Når vil du nå målet ditt?
+   - Hva er budsjettet ditt / hvor mye kan du spare per måned?
+   - Jobber du, studerer du, eller begge deler?
+4. Basert på svarene genererer AI-en:
+   - En personalisert tidslinje (månedskort med relevante todos)
+   - Et budsjett tilpasset målet
+   - 5–7 personlige mål
+   - En sparemål-sum og countdown-dato
+5. Appen fylles inn automatisk med dataene
+6. Brukeren kan redigere alt etterpå som normalt
+7. En liten "Start på nytt"-knapp lar brukeren kjøre onboarding igjen
+
+### API-oppsett
+```javascript
+const response = await fetch("https://api.anthropic.com/v1/messages", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    model: "claude-sonnet-4-20250514",
+    max_tokens: 1000,
+    messages: [...]
+  })
+});
+```
+
+API-nøkkel legges inn av brukeren i appen (et enkelt inputfelt) — lagres i
+localStorage så de ikke trenger å skrive den inn igjen. Aldri hardkod API-nøkkel.
+
+### Hva AI-en skal returnere (JSON)
+AI-agenten skal til slutt returnere et JSON-objekt som app.js kan bruke direkte:
+```json
+{
+  "navn": "Mia",
+  "maal": "Drømmetur til Japan",
+  "avreisedato": "2026-09-01",
+  "sparemaal": 30000,
+  "months": [...],
+  "budgetSections": [...],
+  "goals": [...]
+}
+```
 
 ---
 
 ## Design-system
 
 **Fonter:** Playfair Display (serif, headings) + Nunito (sans, body)
-**Palett:** Rosa (#E8619A), lilla (#C9A8E0), mint (#7ECBB8), fersken (#F4A97A), gul (#F5C842)
-**Stil:** Cutesy, myke skygger, pill-border-radius, gradient-knapper, polka dot bakgrunn
-**Brasil-touch:** Tropical gul/grønn aksenter på LatAm-måneder, palme-emoji deko
-
-**CSS-variabler (viktigste):**
+**Palett:**
 ```css
---pink, --pink-light, --pink-deep
---lilac, --lilac-light
---mint, --mint-light
---peach, --peach-light
---bg, --surface, --surface2, --surface3
---border, --border-strong
---text, --text-muted
---radius (16px), --radius-sm (10px), --radius-pill (50px)
---shadow, --shadow-hover
+--pink: #E8619A
+--pink-light: #FDE8F2
+--pink-deep: #C2436F
+--lilac: #C9A8E0
+--lilac-light: #F0E8FA
+--mint: #7ECBB8
+--mint-light: #E4F7F4
+--peach: #F4A97A
+--bg: #FFF8FB
+--surface: #FFFFFF
+--surface2: #FFF0F6
+--text: #3D2535
+--text-muted: #9B7A8A
+--border: #F2CEDE
+--radius: 16px
+--radius-pill: 50px
+--shadow: 0 2px 12px rgba(232,97,154,0.10)
 ```
+**Stil:** Cutesy, myke skygger, pill-border-radius, gradient-knapper, polka dot bakgrunn
+
+### AI-chat-komponenten skal ha samme cutesy stil:
+- Bobler for bruker (rosa, høyre) og AI (hvit/lilla, venstre)
+- Skriveindikator (tre animerte prikker) mens AI tenker
+- Smooth scroll ned til siste melding
+- Avsluttende "Generer min livsplan 🌸"-knapp
 
 ---
 
-## Features som er bygget
+## Viktige regler
 
-- ✅ **Countdown** til avreise (måneder / uker / dager), oppdateres hvert minutt
-- ✅ **Sparetracker** — legg til beløp, progressbar med ✨, milepæler (🌱🌸🌺🦋🌟), mutable sparemål
-- ✅ **Tidslinje** — 8 månedskort (jun 2026 → jan 2027), toggle åpne/lukke
-  - Todo-lister med checkbox, legg til / slett oppgaver
-  - Redigerbare felter (sted, jobb) med inline edit
-  - Notater (textarea)
-  - Fremgangsbar per måned
-- ✅ **Budsjett** — 3 seksjoner (Norge / Europa / LatAm)
-  - Inline redigerbare beløp
-  - Legg til / slett poster per seksjon
-  - 4 metrics-kort øverst (totalbudsjett, brukt, gjenstår, forbrukt%)
-- ✅ **Mål** — contenteditable tittel og beskrivelse (klikk for å redigere)
-  - Range slider for fremgang
-  - Legg til / slett mål
-- ✅ **localStorage** — alt lagres automatisk, persist() kalles ved alle endringer
-- ✅ **Toast-notifikasjoner** — vises ved lagring og hendelser
+- **Aldri hardkod API-nøkkel** — brukeren skriver den inn selv
+- **Ingen backend** — alle API-kall skjer direkte fra frontend
+- **Generisk innhold** — data.js skal ikke inneholde Paris sin reiseplan
+- **Samme design** — ikke endre fargepalett eller fonter
+- **Mobilvennlig** — appen skal fungere på telefon
 
 ---
 
 ## Ideer til videre utvikling
 
-- [ ] Deploy til **GitHub Pages** (gratis hosting)
-- [ ] **Jobbsøker-tracker** — firma, land, status (søkt / intervju / avslag / tilbud)
-- [ ] **Destinasjonssammenligning** — Spania vs Portugal vs Hellas (levekostnader, jobb, vær)
-- [ ] **Budsjett-graf** — visuell fordeling med Chart.js eller D3
-- [ ] **Eksport til PDF** — livsplanen som nedlastbart dokument
-- [ ] **Mørk modus** toggle
-- [ ] **PWA** — legg til på hjemskjerm på telefon
+- [ ] Flere språk (engelsk, spansk)
+- [ ] Del livsplanen som bilde / PDF
+- [ ] Ukentlig påminnelse (push notifications via browser)
+- [ ] Sammenlign to mål mot hverandre
+- [ ] Integrasjon med Google Calendar for milepæler
 
 ---
 
-## Hvordan starte
+## Hvordan starte lokalt
 
 ```bash
-# Åpne i nettleser direkte:
 open index.html
-
-# Eller med en enkel lokal server:
-npx serve .
 # eller
+npx serve .
 python3 -m http.server 3000
 ```
 
----
-
-## Nyttige Claude Code-kommandoer å starte med
+## Første melding til Claude Code
 
 ```
-Les denne filen og bli kjent med prosjektet. Still gjerne spørsmål.
-```
-
-```
-Legg til en jobbsøker-tracker som ny fane i appen
-```
-
-```
-Deploy denne appen til GitHub Pages
-```
-
-```
-Legg til en destinasjonssammenligning mellom Spania, Portugal og Hellas
+Les CONTEXT.md og bli kjent med prosjektet. 
+Bygg agent.js og legg til AI-onboarding-chatten i appen.
+Start med å rense data.js for hardkodet innhold fra originalprosjektet.
 ```
